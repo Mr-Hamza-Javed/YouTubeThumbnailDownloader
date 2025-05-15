@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube Thumbnail Downloader</title>
+    <style>
+        :root {
+            /* Light Theme (Default) */
+            --bg-primary: #ffffff;
+            --bg-secondary: #f8f9fa;
+            --bg-tertiary: #e9ecef;
+            --text-primary: #212529;
+            --text-secondary: #495057;
+            --text-subtle: #6c757d; /* For resolution dimensions */
+            --accent-primary: #007bff;
+            --accent-primary-hover: #0056b3;
+            --accent-success: #28a745; /* Still used for download button */
+            --accent-success-hover: #1e7e34;
+            --accent-danger: #dc3545;
+            --border-color: #dee2e6;
+            --card-shadow: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.05);
+            --card-hover-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.1);
+            --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+            --border-radius: 0.375rem;
+            --transition-speed: 0.2s;
+            --container-gap: 1.75rem; 
+        }
+
+        [data-theme="dark"] {
+            --bg-primary: #121212;
+            --bg-secondary: #1e1e1e;
+            --bg-tertiary: #2c2c2c;
+            --text-primary: #e0e0e0;
+            --text-secondary: #a0a0a0;
+            --text-subtle: #868e96; 
+            --accent-primary: #0d6efd;
+            --accent-primary-hover: #0a58ca;
+            --accent-success: #198754; /* Still used for download button */
+            --accent-success-hover: #146c43;
+            --border-color: #3a3a3a;
+            --card-shadow: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.15);
+            --card-hover-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.25);
+        }
+
+        *, *::before, *::after {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-family);
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-secondary);
+            color: var(--text-primary);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            transition: background-color var(--transition-speed) ease-in-out, color var(--transition-speed) ease-in-out;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 960px;
+            margin: 2.5rem auto;
+            padding: 2.5rem;
+            background-color: var(--bg-primary);
+            border-radius: var(--border-radius);
+            box-shadow: var(--card-shadow);
+            transition: background-color var(--transition-speed) ease-in-out;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 2.5rem;
+            position: relative;
+        }
+
+        header h1 {
+            color: var(--accent-primary);
+            margin-bottom: 0.75rem;
+            font-size: 2.25rem;
+            font-weight: 600;
+        }
+
+        header p {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .theme-switcher {
+            position: absolute;
+            top: -0.5rem;
+            right: 0;
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .theme-switcher button {
+            background: var(--bg-tertiary);
+            color: var(--text-secondary);
+            border: 1px solid var(--border-color);
+            padding: 0.4rem 0.6rem;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: background-color var(--transition-speed), color var(--transition-speed);
+        }
+        .theme-switcher button.active {
+            background: var(--accent-primary);
+            color: white;
+            border-color: var(--accent-primary);
+        }
+        .theme-switcher button:hover:not(.active) {
+            background: var(--border-color);
+        }
+
+        #thumbnail-form {
+            margin-bottom: 2rem;
+        }
+
+        .input-button-wrapper {
+            display: flex;
+            gap: 0.75rem;
+            align-items: stretch;
+        }
+
+        .input-button-wrapper .form-group {
+            flex-grow: 1;
+            margin-bottom: 0;
+        }
+
+        label.sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border-width: 0;
+        }
+
+        input[type="url"] {
+            width: 100%;
+            padding: 0.85rem 1rem;
+            font-size: 1rem;
+            border: 1px solid var(--border-color);
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            border-radius: var(--border-radius);
+            transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out, background-color var(--transition-speed), color var(--transition-speed);
+            height: 100%;
+        }
+
+        input[type="url"]:focus {
+            border-color: var(--accent-primary);
+            outline: 0;
+            box-shadow: 0 0 0 0.2rem rgba(var(--accent-primary-rgb, 0, 123, 255), 0.25);
+        }
+
+        .submit-btn {
+            display: inline-block;
+            font-weight: 500;
+            color: #fff;
+            text-align: center;
+            vertical-align: middle;
+            cursor: pointer;
+            background-color: var(--accent-primary);
+            border: 1px solid var(--accent-primary);
+            padding: 0.85rem 1.75rem;
+            font-size: 1.05rem;
+            line-height: 1.5;
+            border-radius: var(--border-radius);
+            transition: background-color var(--transition-speed) ease-in-out, border-color var(--transition-speed) ease-in-out, transform 0.1s ease-out;
+            flex-shrink: 0;
+        }
+
+        .submit-btn:hover {
+            background-color: var(--accent-primary-hover);
+            border-color: var(--accent-primary-hover);
+            transform: translateY(-1px);
+        }
+        .submit-btn:active {
+            transform: translateY(0px);
+        }
+
+        #thumbnail-results {
+            margin-top: 2.5rem;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: flex-start; 
+            align-items: flex-start;
+            gap: var(--container-gap);
+        }
+
+        .thumbnail-card {
+            background-color: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius);
+            padding: 1.25rem;
+            box-shadow: var(--card-shadow);
+            transition: transform var(--transition-speed) ease-in-out, box-shadow var(--transition-speed) ease-in-out, background-color var(--transition-speed), border-color var(--transition-speed);
+            flex-grow: 0;
+            flex-shrink: 0;
+            opacity: 0; 
+            transform: translateY(20px); 
+            animation: cardFadeInUp 0.5s ease-out forwards;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        /* Animation delays */
+        .thumbnail-card:nth-child(1) { animation-delay: 0.05s; }
+        .thumbnail-card:nth-child(2) { animation-delay: 0.1s; }
+        .thumbnail-card:nth-child(3) { animation-delay: 0.15s; }
+        .thumbnail-card:nth-child(4) { animation-delay: 0.20s; }
+        .thumbnail-card:nth-child(5) { animation-delay: 0.25s; }
+        .thumbnail-card:nth-child(6) { animation-delay: 0.30s; }
+        .thumbnail-card:nth-child(7) { animation-delay: 0.35s; }
+        .thumbnail-card:nth-child(8) { animation-delay: 0.4s; }
+
+        @keyframes cardFadeInUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .thumbnail-card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--card-hover-shadow);
+        }
+        
+        /* --- Flex basis for card sizing and layout based on new order --- */
+        /* These will take full width, ensuring they are on their own line, 
+           matching the order defined in JavaScript's thumbnailTypes array */
+        .thumbnail-card.size-maxres,  /* 1st item as per JS order */
+        .thumbnail-card.size-sd,      /* 2nd item */
+        .thumbnail-card.size-hq,      /* 3rd item */
+        .thumbnail-card.size-mq,      /* 4th item */
+        .thumbnail-card.size-default { /* 5th item */
+            flex-basis: 100%; 
+        }
+
+        /* For Start, Middle, End frames to share a row (6th, 7th, 8th items) */
+        .thumbnail-card.size-frames { 
+            flex-basis: calc((100% - (2 * var(--container-gap))) / 3);
+        }
+
+        /* Responsive adjustments for frame thumbnails */
+        @media (max-width: 768px) { 
+            .thumbnail-card.size-frames {
+                 flex-basis: calc((100% - var(--container-gap)) / 2); /* 2 per row */
+            }
+        }
+        @media (max-width: 480px) { 
+            .thumbnail-card.size-frames {
+                flex-basis: 100%; /* 1 per row */
+            }
+        }
+
+
+        .thumbnail-card img {
+            max-width: 100%;
+            height: auto;
+            border-radius: var(--border-radius);
+            margin-bottom: 0.75rem; 
+            border: 1px solid var(--border-color);
+            display: block;
+            margin-left: auto;
+            margin-right: auto;
+            transition: border-color var(--transition-speed);
+        }
+
+        /* NEW class for grouping title and dimensions */
+        .title-dimensions-group {
+            display: flex;
+            align-items: baseline; /* Aligns text nicely, especially if font sizes differ */
+            gap: 0.5em;       /* Space between the title and the dimensions text */
+        }
+
+        .thumb-card-title {
+            font-size: 0.95rem;
+            font-weight: 500;
+            color: var(--text-primary);
+            margin-bottom: 0; /* CHANGED: No bottom margin as it's now part of a flex line */
+            /* text-align: center; /* REMOVED: No longer centered on its own line */
+        }
+
+        .card-info-line {
+            display: flex;
+            justify-content: space-between; /* Puts title-group on left, button on right */
+            align-items: center;
+            margin-top: auto; /* IMPORTANT: Pushes this whole line to the bottom of the card */
+            gap: 0.75rem;     /* Space between the title-group and the download button */
+        }
+
+        .thumb-dimensions {
+            font-size: 0.85rem;
+            color: var(--text-subtle);
+            margin-bottom: 0;
+        }
+
+
+        .thumb-card-title { 
+            font-size: 0.95rem;
+            font-weight: 500;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem; 
+            text-align: center;
+        }
+
+        .card-info-line { 
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: auto; 
+            gap: 0.75rem; 
+        }
+
+        .thumb-dimensions { 
+            font-size: 0.85rem;
+            color: var(--text-subtle);
+            margin-bottom: 0; 
+        }
+
+        .thumbnail-card .download-btn {
+            display: inline-block;
+            padding: 0.6rem 1.2rem;
+            background-color: var(--accent-success); /* Success color still for download button */
+            color: white;
+            text-decoration: none;
+            border-radius: var(--border-radius);
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: background-color var(--transition-speed), transform 0.1s ease-out;
+            border: none;
+            flex-shrink: 0; 
+        }
+
+        .thumbnail-card .download-btn:hover {
+            background-color: var(--accent-success-hover);
+            transform: translateY(-1px);
+        }
+        .thumbnail-card .download-btn:active {
+             transform: translateY(0px);
+        }
+
+        .message {
+            padding: 1rem 1.25rem;
+            margin-bottom: 1.5rem;
+            border-radius: var(--border-radius);
+            text-align: center;
+            font-size: 0.95rem;
+            border: 1px solid transparent;
+            opacity: 0;
+            animation: fadeIn 0.3s ease-out forwards;
+        }
+        @keyframes fadeIn { to { opacity: 1; } }
+
+        .message.error {
+            background-color: rgba(var(--accent-danger-rgb, 220, 53, 69), 0.1);
+            color: var(--accent-danger);
+            border-color: rgba(var(--accent-danger-rgb, 220, 53, 69), 0.3);
+        }
+        .message.info { /* For "Loading..." message */
+            background-color: rgba(var(--accent-primary-rgb, 0, 123, 255), 0.1);
+            color: var(--accent-primary);
+            border-color: rgba(var(--accent-primary-rgb, 0, 123, 255), 0.3);
+        }
+        /* Success class is still defined in CSS for download initiated message, 
+           but not used for "thumbnails loaded" */
+         .message.success { 
+            background-color: rgba(var(--accent-success-rgb, 40, 167, 69), 0.1);
+            color: var(--accent-success);
+            border-color: rgba(var(--accent-success-rgb, 40, 167, 69), 0.3);
+        }
+
+
+        footer {
+            text-align: center;
+            padding: 2rem 1rem;
+            margin-top: auto;
+            background-color: var(--bg-primary);
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            border-top: 1px solid var(--border-color);
+            transition: background-color var(--transition-speed), color var(--transition-speed), border-color var(--transition-speed);
+        }
+        footer a {
+            color: var(--accent-primary);
+            text-decoration: none;
+            font-weight: 500;
+        }
+        footer a:hover {
+            text-decoration: underline;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <header>
+            <div class="theme-switcher">
+                <button type="button" data-theme-value="light" title="Switch to Light Mode">☀️</button>
+                <button type="button" data-theme-value="dark" title="Switch to Dark Mode">🌙</button>
+                <button type="button" data-theme-value="system" title="Use System Preference">⚙️</button>
+            </div>
+            <h1>YouTube Thumbnail Downloader</h1>
+            <p>Enter a YouTube video URL to fetch and download its thumbnails in various resolutions.</p>
+        </header>
+
+        <form id="thumbnail-form">
+            <div class="input-button-wrapper">
+                <div class="form-group">
+                    <label for="youtube-url" class="sr-only">YouTube Video URL</label>
+                    <input type="url" id="youtube-url" name="youtube-url" placeholder="e.g., https://www.youtube.com/watch?v=dQw4w9WgXcQ" required>
+                </div>
+                <button type="submit" class="submit-btn">Get Thumbnails</button>
+            </div>
+        </form>
+
+        <div id="message-area"></div>
+        <div id="thumbnail-results">
+            <!-- Thumbnails will be injected here -->
+        </div>
+    </div>
+
+    <footer>
+        <p>&copy; <span id="currentYear"></span> YouTube Thumbnail Downloader. 
+            Created by AI. Design inspired by modern web trends.</p>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const form = document.getElementById('thumbnail-form');
+            const urlInput = document.getElementById('youtube-url');
+            const resultsContainer = document.getElementById('thumbnail-results');
+            const messageArea = document.getElementById('message-area');
+            const themeSwitcherButtons = document.querySelectorAll('.theme-switcher button');
+            const currentYearSpan = document.getElementById('currentYear');
+            if (currentYearSpan) {
+                 currentYearSpan.textContent = new Date().getFullYear();
+            }
+
+            // --- Theme Management ---
+            const getStoredTheme = () => localStorage.getItem('theme');
+            const setStoredTheme = theme => localStorage.setItem('theme', theme);
+
+            const getPreferredTheme = () => {
+                const storedTheme = getStoredTheme();
+                if (storedTheme) return storedTheme;
+                return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+            };
+
+            const setTheme = theme => {
+                const effectiveTheme = theme === 'system' ? 
+                    (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light') : 
+                    theme;
+                document.documentElement.setAttribute('data-theme', effectiveTheme);
+                updateAccentRGBVariables(effectiveTheme);
+            };
+            
+            const updateAccentRGBVariables = (effectiveTheme) => {
+                let accentPrimaryRGB, accentSuccessRGB, accentDangerRGB;
+                if (effectiveTheme === 'dark') {
+                    accentPrimaryRGB = "13, 110, 253"; 
+                    accentSuccessRGB = "25, 135, 84";  
+                    accentDangerRGB = "220, 53, 69";   
+                } else {
+                    accentPrimaryRGB = "0, 123, 255";  
+                    accentSuccessRGB = "40, 167, 69";  
+                    accentDangerRGB = "220, 53, 69";   
+                }
+                document.documentElement.style.setProperty('--accent-primary-rgb', accentPrimaryRGB);
+                document.documentElement.style.setProperty('--accent-success-rgb', accentSuccessRGB);
+                document.documentElement.style.setProperty('--accent-danger-rgb', accentDangerRGB);
+            };
+
+            const updateThemeSwitcherUI = (activeButtonTheme) => {
+                themeSwitcherButtons.forEach(button => {
+                    button.classList.toggle('active', button.dataset.themeValue === activeButtonTheme);
+                });
+            };
+
+            let currentActiveButtonTheme = getStoredTheme() || 'system';
+            setTheme(currentActiveButtonTheme);
+            updateThemeSwitcherUI(currentActiveButtonTheme);
+
+            themeSwitcherButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    const selectedTheme = button.dataset.themeValue;
+                    setStoredTheme(selectedTheme);
+                    currentActiveButtonTheme = selectedTheme;
+                    setTheme(selectedTheme);
+                    updateThemeSwitcherUI(selectedTheme);
+                });
+            });
+
+            window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+                if (currentActiveButtonTheme === 'system') {
+                    setTheme('system'); 
+                }
+            });
+            // --- End Theme Management ---
+
+            function extractVideoID(url) {
+                const regex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/ ]{11})/i;
+                const match = url.match(regex);
+                return match ? match[1] : null;
+            }
+
+            function showMessage(text, type = 'info') {
+                clearMessages(); 
+                if (type === 'success' && text.startsWith('Thumbnails loaded')) {
+                    return; 
+                }
+                messageArea.innerHTML = `<div class="message ${type}">${text}</div>`;
+            }
+
+            function clearMessages() {
+                messageArea.innerHTML = '';
+            }
+            
+            function clearResults() {
+                resultsContainer.innerHTML = '';
+                resultsContainer.removeAttribute('data-loading-state');
+            }
+
+            async function forceDownload(imageUrl, filename) {
+                showMessage('Preparing download...', 'info'); 
+                try {
+                    const response = await fetch(imageUrl);
+                    if (!response.ok) {
+                        throw new Error(`Network response was not ok: ${response.statusText} (status: ${response.status}) for ${imageUrl}`);
+                    }
+                    const blob = await response.blob();
+                    const blobUrl = URL.createObjectURL(blob);
+
+                    const a = document.createElement('a');
+                    a.href = blobUrl;
+                    a.download = filename;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a); 
+                    URL.revokeObjectURL(blobUrl);
+                    showMessage(`Download initiated for ${filename}.`, 'success');
+                    setTimeout(() => { 
+                        if(messageArea.querySelector('.message.success')?.textContent.startsWith('Download initiated')) {
+                            if (resultsContainer.dataset.loadingState !== "loading") {
+                                clearMessages();
+                            }
+                        }
+                    }, 4000);
+                } catch (error) {
+                    console.error('Download failed:', error);
+                    if (!messageArea.querySelector('.message.error') || messageArea.querySelector('.message.info')) {
+                         showMessage(`Download failed for ${filename}: ${error.message}. The image might not exist or there was a network issue.`, 'error');
+                    }
+                }
+            }
+
+
+
+async function getThumbnails(videoURL) {
+                clearMessages();
+                clearResults();
+                resultsContainer.dataset.loadingState = "loading";
+                showMessage('Loading thumbnails, please wait...', 'info');
+
+                const videoID = extractVideoID(videoURL);
+
+                if (!videoID) {
+                    showMessage('Invalid YouTube Video URL. Please check and try again.', 'error');
+                    resultsContainer.dataset.loadingState = "error";
+                    return;
+                }
+
+                const newUrl = `${window.location.pathname}?url=${encodeURIComponent(videoURL)}`;
+                window.history.pushState({path: newUrl}, '', newUrl);
+
+                const thumbnailTypes = [
+                    { name: 'Max Resolution', file: 'maxresdefault.jpg', res: '1280x720', sizeClass: 'size-maxres' },
+                    { name: 'Standard Definition', file: 'sddefault.jpg', res: '640x480', sizeClass: 'size-sd' },
+                    { name: 'High Quality', file: 'hqdefault.jpg', res: '480x360', sizeClass: 'size-hq' },
+                    { name: 'Medium Quality', file: 'mqdefault.jpg', res: '320x180', sizeClass: 'size-mq' },
+                    { name: 'Default', file: 'default.jpg', res: '120x90', sizeClass: 'size-default' },
+                    { name: 'Start Frame', file: '1.jpg', res: 'Frame 1 (120x90)', sizeClass: 'size-frames' },
+                    { name: 'Middle Frame', file: '2.jpg', res: 'Frame 2 (120x90)', sizeClass: 'size-frames' },
+                    { name: 'End Frame', file: '3.jpg', res: 'Frame 3 (120x90)', sizeClass: 'size-frames' }
+                ];
+
+                const cardDataArray = [];
+
+                // --- Stage 1: Create and append card structures synchronously ---
+                thumbnailTypes.forEach((thumb, index) => {
+                    const card = document.createElement('div');
+                    card.className = `thumbnail-card ${thumb.sizeClass}`;
+                    card.style.animationDelay = `${index * 0.05}s`;
+                    card.style.display = 'none'; // Initially hide, show on image load
+
+                    const img = document.createElement('img');
+                    img.alt = `${thumb.name} Thumbnail for ${videoID}`;
+
+                    const titleEl = document.createElement('p');
+                    titleEl.className = 'thumb-card-title';
+                    titleEl.textContent = thumb.name;
+
+                    const resEl = document.createElement('p');
+                    resEl.className = 'thumb-dimensions';
+                    resEl.textContent = `(${thumb.res})`;
+
+                    const downloadButton = document.createElement('button');
+                    downloadButton.textContent = 'Download';
+                    downloadButton.className = 'download-btn';
+
+                    // Create the group for title and dimensions
+                    const titleAndDimensionsContainer = document.createElement('div');
+                    titleAndDimensionsContainer.className = 'title-dimensions-group';
+                    titleAndDimensionsContainer.appendChild(titleEl);
+                    titleAndDimensionsContainer.appendChild(resEl);
+
+                    // Create the main info line
+                    const infoLine = document.createElement('div');
+                    infoLine.className = 'card-info-line';
+                    infoLine.appendChild(titleAndDimensionsContainer); // Add the group to the left
+                    infoLine.appendChild(downloadButton);             // Add the button to the right
+
+                    // Assemble the card
+                    card.appendChild(img);    // Image at the top
+                    card.appendChild(infoLine); // Info line (with title, res, button) at the bottom
+
+                    resultsContainer.appendChild(card);
+
+                    // Store references needed for Stage 2 (image loading & event binding)
+                    cardDataArray.push({
+                        cardElement: card,
+                        imgElement: img,
+                        resElementForFallback: resEl, // For updating text on maxres fallback
+                        downloadButtonForBinding: downloadButton, // For attaching click listener
+                        thumbInfo: thumb
+                    });
+                });
+
+                // --- Stage 2: Load images asynchronously into the pre-appended cards ---
+                let thumbnailsAttempted = 0;
+                const loadPromises = [];
+
+                cardDataArray.forEach(data => {
+                    thumbnailsAttempted++;
+                    const { cardElement, imgElement, resElementForFallback, downloadButtonForBinding, thumbInfo } = data;
+
+                    const imageLoadPromise = new Promise((resolve) => {
+                        const thumbnailUrl = `https://img.youtube.com/vi/${videoID}/${thumbInfo.file}`;
+                        const downloadFilename = `${videoID}_${thumbInfo.file}`;
+
+                        const imageChecker = new Image();
+                        imageChecker.onload = () => {
+                            imgElement.src = thumbnailUrl;
+                            downloadButtonForBinding.addEventListener('click', (e) => {
+                                e.preventDefault();
+                                forceDownload(imgElement.src, downloadFilename);
+                            });
+                            cardElement.style.display = ''; // Show card
+                            resolve({ status: 'loaded', file: thumbInfo.file });
+                        };
+                        imageChecker.onerror = () => {
+                            if (thumbInfo.file === 'maxresdefault.jpg') {
+                                const fallbackUrl = `https://img.youtube.com/vi/${videoID}/hqdefault.jpg`;
+                                const fallbackChecker = new Image();
+                                fallbackChecker.onload = () => {
+                                    imgElement.src = fallbackUrl;
+                                    resElementForFallback.textContent = `(480x360 Fallback)`; // Update dimensions text
+                                    downloadButtonForBinding.addEventListener('click', (e) => {
+                                        e.preventDefault();
+                                        forceDownload(imgElement.src, `${videoID}_hqdefault_fallback.jpg`);
+                                    });
+                                    cardElement.style.display = ''; // Show card
+                                    resolve({ status: 'loaded_fallback', file: thumbInfo.file });
+                                };
+                                fallbackChecker.onerror = () => {
+                                    resolve({ status: 'error', file: thumbInfo.file });
+                                };
+                                fallbackChecker.src = fallbackUrl;
+                            } else {
+                                resolve({ status: 'error', file: thumbInfo.file });
+                            }
+                        };
+                        imageChecker.src = thumbnailUrl;
+                    });
+                    loadPromises.push(imageLoadPromise);
+                });
+
+                Promise.allSettled(loadPromises).then(results => {
+                    const successfullyLoadedCount = results.filter(r => r.status === 'fulfilled' && (r.value.status === 'loaded' || r.value.status === 'loaded_fallback')).length;
+
+                    if (messageArea.querySelector('.message.info')?.textContent.startsWith('Loading thumbnails')) {
+                        clearMessages();
+                    }
+
+                    resultsContainer.dataset.loadingState = "loaded";
+
+                    if (successfullyLoadedCount === 0 && thumbnailsAttempted > 0) {
+                        showMessage('Could not load any thumbnails for this video. It might be private, deleted, or have unusual thumbnail settings.', 'error');
+                        resultsContainer.dataset.loadingState = "error";
+                    } else if (successfullyLoadedCount === 0 && videoID) {
+                        showMessage('No thumbnail information could be retrieved for this video.', 'error');
+                        resultsContainer.dataset.loadingState = "error";
+                    }
+                });
+            }
+
+
+
+
+            form.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const videoURL = urlInput.value.trim();
+                if (videoURL) {
+                    getThumbnails(videoURL);
+                } else {
+                    showMessage('Please enter a YouTube Video URL.', 'error');
+                }
+            });
+
+            const urlParams = new URLSearchParams(window.location.search);
+            const videoUrlFromParam = urlParams.get('url');
+            if (videoUrlFromParam) {
+                urlInput.value = videoUrlFromParam;
+                getThumbnails(videoUrlFromParam);
+            }
+        });
+    </script>
+
+</body>
+</html>
