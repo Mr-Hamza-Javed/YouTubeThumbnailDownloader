@@ -1,0 +1,1 @@
+Alamza thumbnail downloader
